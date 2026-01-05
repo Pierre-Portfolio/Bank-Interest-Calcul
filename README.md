@@ -16,11 +16,17 @@ Projet générique pour produire un échéancier d’amortissement mensuel à pa
 - Offrir des sorties prêtes à l’emploi (CSV / .xlsx / Google Sheet) et un script automatisé pour créer la feuille et suivre l’exécution.
 - Laisser les paramètres aisément modifiables pour l’adapter à tout type de prêt.
 
-## Technologiess
+## Technologie
 - JavaScript
 
-## Aperçu de l’interface
-<img src="./assets/images/github/UI.png" alt="Aperçu Portfolio Celia" />
+## Déploiement
+Voici les étapes rapides pour obtenir le .xlsx téléchargeable :
+
+- Ouvrez https://script.google.com → Nouveau projet.
+- Collez le code ci‑dessus, enregistrez.
+- Exécutez createEcheancier → acceptez les autorisations (accès à Drive/Sheets).
+- À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée.
+- Dans Google Sheets : Fichier → Télécharger → Microsoft Excel (.xlsx). Le fichier .xlsx téléchargé contiendra les 300 lignes formatées.
 
 ## Auteur
 - [Pierre-Portfolio](https://github.com/Pierre-Portfolio/)
