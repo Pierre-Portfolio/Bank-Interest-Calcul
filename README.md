@@ -28,6 +28,9 @@ Voici les étapes rapides pour obtenir le .xlsx téléchargeable :
 - À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée.
 - Dans Google Sheets : Fichier → Télécharger → Microsoft Excel (.xlsx). Le fichier .xlsx téléchargé contiendra les 300 lignes formatées.
 
+## Démo
+<img src="./assets/images/github/demo.png" alt="demo" />
+
 ## Auteur
 - [Pierre-Portfolio](https://github.com/Pierre-Portfolio/)
 
