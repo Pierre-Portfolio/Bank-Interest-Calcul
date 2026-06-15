@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'" />
   <title>Bank Interest Calcul — Échéancier d'amortissement</title>
   <style>
     :root {
@@ -350,57 +351,92 @@
       return null;
     }
 
-    function alertBox(type, html) {
-      return '<div class="alert ' + type + '">' + html + '</div>';
+    // Construit une alerte sans innerHTML : chaque partie est insérée comme
+    // texte (createTextNode), les segments { b: ... } deviennent des <strong>.
+    // Aucune chaîne n'est interprétée comme du HTML → pas de vecteur XSS.
+    function makeAlert(type, parts) {
+      var div = document.createElement('div');
+      div.className = 'alert ' + type;
+      parts.forEach(function (part) {
+        if (typeof part === 'string') {
+          div.appendChild(document.createTextNode(part));
+        } else {
+          var strong = document.createElement('strong');
+          strong.textContent = part.b;
+          div.appendChild(strong);
+        }
+      });
+      return div;
     }
 
-    function stat(k, v) {
-      return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+    function makeStat(k, v) {
+      var wrap = document.createElement('div');
+      wrap.className = 'stat';
+      var kd = document.createElement('div');
+      kd.className = 'k';
+      kd.textContent = k;
+      var vd = document.createElement('div');
+      vd.className = 'v';
+      vd.textContent = v;
+      wrap.appendChild(kd);
+      wrap.appendChild(vd);
+      return wrap;
     }
 
     function render(res, p) {
       // Alertes
-      var html = '';
       if (res.stopped) {
-        html += alertBox('err',
+        alertsEl.replaceChildren(makeAlert('err', [
           '⛔ Au mois ' + res.stopped.m + ', les intérêts (' + formatFrenchNumber(res.stopped.interets) +
           ' €) plus les frais (' + formatFrenchNumber(p.autresFrais) + ' €) dépassent la mensualité (' +
-          formatFrenchNumber(p.mensualite) + ' €). Le capital restant dû (<strong>' +
-          formatFrenchNumber(res.resteCapital) + ' €</strong>) ne diminuera jamais : augmentez la mensualité.');
+          formatFrenchNumber(p.mensualite) + ' €). Le capital restant dû (',
+          { b: formatFrenchNumber(res.resteCapital) + ' €' },
+          ') ne diminuera jamais : augmentez la mensualité.'
+        ]));
       } else if (res.resteCapital > 0) {
-        html += alertBox('warn',
-          '⚠️ Capital non éteint après ' + p.nbMois + ' mois : il reste <strong>' +
-          formatFrenchNumber(res.resteCapital) + ' €</strong>. Augmentez la mensualité ou la durée.');
+        alertsEl.replaceChildren(makeAlert('warn', [
+          '⚠️ Capital non éteint après ' + p.nbMois + ' mois : il reste ',
+          { b: formatFrenchNumber(res.resteCapital) + ' €' },
+          '. Augmentez la mensualité ou la durée.'
+        ]));
       } else if (res.extinctionMois) {
-        html += alertBox('ok',
-          '✅ Prêt soldé au mois <strong>' + res.extinctionMois + '</strong> (' +
-          (res.extinctionMois / 12).toFixed(1).replace('.', ',') + ' ans).');
+        alertsEl.replaceChildren(makeAlert('ok', [
+          '✅ Prêt soldé au mois ',
+          { b: String(res.extinctionMois) },
+          ' (' + (res.extinctionMois / 12).toFixed(1).replace('.', ',') + ' ans).'
+        ]));
+      } else {
+        alertsEl.replaceChildren();
       }
-      alertsEl.innerHTML = html;
 
       // Synthèse
       var coutCredit = round2(res.totals.interets + res.totals.frais);
       var echeancesPayees = res.rows.filter(function (x) { return !x.zero; }).length;
-      summaryEl.innerHTML =
-        stat('Échéances payées', echeancesPayees) +
-        stat('Total versé', formatFrenchNumber(res.totals.verse) + ' €') +
-        stat('Total intérêts', formatFrenchNumber(res.totals.interets) + ' €') +
-        stat('Total frais', formatFrenchNumber(res.totals.frais) + ' €') +
-        stat('Coût du crédit', formatFrenchNumber(coutCredit) + ' €');
+      summaryEl.replaceChildren(
+        makeStat('Échéances payées', echeancesPayees),
+        makeStat('Total versé', formatFrenchNumber(res.totals.verse) + ' €'),
+        makeStat('Total intérêts', formatFrenchNumber(res.totals.interets) + ' €'),
+        makeStat('Total frais', formatFrenchNumber(res.totals.frais) + ' €'),
+        makeStat('Coût du crédit', formatFrenchNumber(coutCredit) + ' €')
+      );
 
-      // Tableau
-      var rowsHtml = res.rows.map(function (row) {
-        var cls = row.zero ? ' class="zero"' : (row.lastPayment ? ' class="last-payment"' : '');
-        return '<tr' + cls + '>' +
-          '<td>' + row.m + '</td>' +
-          '<td>' + formatFrenchNumber(row.paiement) + '</td>' +
-          '<td>' + formatFrenchNumber(row.interets) + '</td>' +
-          '<td>' + formatFrenchNumber(row.frais) + '</td>' +
-          '<td>' + formatFrenchNumber(row.capitalRembourse) + '</td>' +
-          '<td>' + formatFrenchNumber(row.capitalRestant) + '</td>' +
-          '</tr>';
-      }).join('');
-      tbody.innerHTML = rowsHtml;
+      // Tableau : construction via DocumentFragment + textContent (pas d'innerHTML).
+      var frag = document.createDocumentFragment();
+      res.rows.forEach(function (row) {
+        var tr = document.createElement('tr');
+        if (row.zero) tr.className = 'zero';
+        else if (row.lastPayment) tr.className = 'last-payment';
+        var cells = [row.m, formatFrenchNumber(row.paiement), formatFrenchNumber(row.interets),
+          formatFrenchNumber(row.frais), formatFrenchNumber(row.capitalRembourse),
+          formatFrenchNumber(row.capitalRestant)];
+        cells.forEach(function (c) {
+          var td = document.createElement('td');
+          td.textContent = c;
+          tr.appendChild(td);
+        });
+        frag.appendChild(tr);
+      });
+      tbody.replaceChildren(frag);
 
       results.classList.remove('hidden');
       csvBtn.disabled = false;
@@ -414,9 +450,9 @@
       var err = validate(p);
       if (err) {
         results.classList.remove('hidden');
-        alertsEl.innerHTML = alertBox('err', '⛔ ' + err);
-        summaryEl.innerHTML = '';
-        tbody.innerHTML = '';
+        alertsEl.replaceChildren(makeAlert('err', ['⛔ ' + err]));
+        summaryEl.replaceChildren();
+        tbody.replaceChildren();
         csvBtn.disabled = true;
         printBtn.disabled = true;
         lastResult = null;
