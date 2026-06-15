@@ -30,7 +30,7 @@ Aucune installation : le projet est un simple fichier HTML.
 > Les valeurs par défaut correspondent à un prêt d’exemple (3,4 % — 1 000 €/mois). Modifiez-les librement : l’interface prévient si la mensualité est trop faible pour amortir le prêt ou si le capital n’est pas éteint au terme de la durée choisie.
 
 ## Démo
-<img src="./assets/images/github/demo.png" alt="demo" />
+<img src="./assets/images/github/UI.png" alt="demo" />
 
 ## Auteur
 - [Pierre-Portfolio](https://github.com/Pierre-Portfolio/)
