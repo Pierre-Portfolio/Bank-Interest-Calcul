@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Interest Calcul — Échéancier d'amortissement</title>
+  <style>
+    :root {
+      --bg: #0f1623;
+      --panel: #16203212;
+      --card: #ffffff;
+      --card-2: #f5f7fb;
+      --text: #1b2435;
+      --muted: #5b6678;
+      --border: #e3e8f0;
+      --accent: #2f6df6;
+      --accent-2: #1d4ed8;
+      --ok: #0f9d58;
+      --warn: #b8860b;
+      --warn-bg: #fff7e0;
+      --err: #c0392b;
+      --err-bg: #fdecea;
+      --shadow: 0 10px 30px rgba(20, 35, 70, .08);
+      --radius: 14px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --card: #16203a;
+        --card-2: #111a30;
+        --text: #e8edf6;
+        --muted: #9fb0c8;
+        --border: #28344f;
+        --accent: #5b8def;
+        --accent-2: #3b73e8;
+        --warn-bg: #2b2410;
+        --err-bg: #2c1714;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #2f6df622, transparent),
+        radial-gradient(1000px 500px at 110% 0%, #1d4ed822, transparent),
+        var(--card-2);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 32px 20px 64px; }
+    header.app { text-align: center; margin-bottom: 28px; }
+    header.app h1 { margin: 0 0 6px; font-size: 1.9rem; letter-spacing: -.02em; }
+    header.app p { margin: 0; color: var(--muted); }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 22px;
+      margin-bottom: 22px;
+    }
+    .card h2 { margin: 0 0 16px; font-size: 1.05rem; }
+
+    form .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+    .field label {
+      display: block;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .field .inputwrap { position: relative; display: flex; align-items: center; }
+    .field input {
+      width: 100%;
+      padding: 11px 12px;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--card-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent)33; }
+    .field .unit {
+      position: absolute; right: 12px;
+      color: var(--muted); font-size: .85rem; pointer-events: none;
+    }
+    .field .hint { font-size: .72rem; color: var(--muted); margin-top: 5px; }
+
+    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+    button {
+      font: inherit; font-weight: 600; cursor: pointer;
+      border-radius: 10px; padding: 11px 20px; border: 1px solid transparent;
+      transition: transform .05s, background .15s, opacity .15s;
+    }
+    button:active { transform: translateY(1px); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: var(--accent-2); }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border); }
+    .btn-ghost:hover:not(:disabled) { background: var(--card-2); }
+
+    .alert { border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: .92rem; }
+    .alert.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn)55; }
+    .alert.err  { background: var(--err-bg);  color: var(--err);  border: 1px solid var(--err)55; }
+    .alert.ok   { background: #e9f8ef; color: var(--ok); border: 1px solid var(--ok)55; }
+    @media (prefers-color-scheme: dark) { .alert.ok { background: #102a1d; } }
+
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
+    .stat { background: var(--card-2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+    .stat .k { font-size: .76rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+    .stat .v { font-size: 1.25rem; font-weight: 700; margin-top: 4px; }
+
+    .tablewrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; max-height: 60vh; }
+    table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+    thead th {
+      position: sticky; top: 0; z-index: 1;
+      background: var(--card); color: var(--muted);
+      font-size: .78rem; text-align: right; padding: 11px 14px;
+      border-bottom: 2px solid var(--border); white-space: nowrap;
+    }
+    thead th:first-child { text-align: center; }
+    tbody td { padding: 9px 14px; text-align: right; border-bottom: 1px solid var(--border); font-size: .9rem; }
+    tbody td:first-child { text-align: center; color: var(--muted); font-weight: 600; }
+    tbody tr:nth-child(even) { background: var(--card-2); }
+    tbody tr.zero td { color: var(--muted); opacity: .65; }
+    tbody tr.last-payment td { background: #e9f8ef; }
+    @media (prefers-color-scheme: dark) { tbody tr.last-payment td { background: #102a1d; } }
+
+    .muted { color: var(--muted); }
+    .hidden { display: none; }
+    footer { text-align: center; color: var(--muted); font-size: .82rem; margin-top: 30px; }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="app">
+      <h1>Bank Interest Calcul</h1>
+      <p>Échéancier d'amortissement mensuel — réglez vos paramètres puis calculez.</p>
+    </header>
+
+    <section class="card">
+      <h2>Paramètres du prêt</h2>
+      <form id="form" novalidate>
+        <div class="grid">
+          <div class="field">
+            <label for="capital">Capital de départ</label>
+            <div class="inputwrap">
+              <input type="number" id="capital" step="0.01" min="0" value="203567.64" />
+              <span class="unit">€</span>
+            </div>
+            <div class="hint">Capital restant dû au début de l'échéancier.</div>
+          </div>
+          <div class="field">
+            <label for="taux">Taux annuel</label>
+            <div class="inputwrap">
+              <input type="number" id="taux" step="0.01" min="0" value="3.4" />
+              <span class="unit">%</span>
+            </div>
+            <div class="hint">Taux d'intérêt nominal annuel.</div>
+          </div>
+          <div class="field">
+            <label for="mensualite">Mensualité</label>
+            <div class="inputwrap">
+              <input type="number" id="mensualite" step="0.01" min="0" value="1000" />
+              <span class="unit">€</span>
+            </div>
+            <div class="hint">Montant fixe versé chaque mois.</div>
+          </div>
+          <div class="field">
+            <label for="frais">Autres frais mensuels</label>
+            <div class="inputwrap">
+              <input type="number" id="frais" step="0.01" min="0" value="15" />
+              <span class="unit">€</span>
+            </div>
+            <div class="hint">Assurance, frais de dossier récurrents…</div>
+          </div>
+          <div class="field">
+            <label for="nbMois">Durée maximale</label>
+            <div class="inputwrap">
+              <input type="number" id="nbMois" step="1" min="1" max="2000" value="300" />
+              <span class="unit">mois</span>
+            </div>
+            <div class="hint">Nombre d'échéances à générer.</div>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="submit" class="btn-primary">Calculer l'échéancier</button>
+          <button type="button" id="resetBtn" class="btn-ghost">Réinitialiser</button>
+          <button type="button" id="csvBtn" class="btn-ghost" disabled>Exporter en CSV</button>
+          <button type="button" id="printBtn" class="btn-ghost" disabled>Imprimer / PDF</button>
+        </div>
+      </form>
+    </section>
+
+    <section id="results" class="card hidden">
+      <h2>Résultats</h2>
+      <div id="alerts"></div>
+      <div class="summary" id="summary"></div>
+      <h2 style="margin-top:22px">Détail mois par mois</h2>
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Échéance</th>
+              <th>Versement</th>
+              <th>Intérêts</th>
+              <th>Autres frais</th>
+              <th>Capital remboursé</th>
+              <th>Capital restant dû</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Données calculées localement dans votre navigateur — rien n'est envoyé sur un serveur.
+      &nbsp;·&nbsp; <a href="https://github.com/Pierre-Portfolio/" target="_blank" rel="noopener">Pierre-Portfolio</a>
+    </footer>
+  </div>
+
+  <script>
+    'use strict';
+
+    var round2 = function (x) { return Math.round(x * 100) / 100; };
+
+    function formatFrenchNumber(num) {
+      var neg = num < 0;
+      if (neg) num = -num;
+      var parts = round2(num).toFixed(2).split('.');
+      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // espace insécable
+      var out = parts[0] + ',' + parts[1];
+      return neg ? '-' + out : out;
+    }
+
+    /**
+     * Calcule l'échéancier d'amortissement.
+     * @returns {{rows:Array, totals:Object, extinctionMois:?number, stopped:?Object, resteCapital:number}}
+     */
+    function computeSchedule(p) {
+      var r = p.tauxAnnuel / 12;
+      var capitalRestant = round2(p.capitalInitial);
+      var rows = [];
+      var totalVerse = 0, totalInterets = 0, totalFrais = 0;
+      var extinctionMois = null;
+      var stopped = null;
+
+      for (var m = 1; m <= p.nbMois; m++) {
+        // Capital déjà éteint : on remplit avec des zéros jusqu'à la fin.
+        if (capitalRestant <= 0) {
+          rows.push({ m: m, paiement: 0, interets: 0, frais: 0, capitalRembourse: 0, capitalRestant: 0, zero: true });
+          continue;
+        }
+
+        var interets = round2(capitalRestant * r);
+        var capitalRembourse = round2(p.mensualite - interets - p.autresFrais);
+
+        // Garde-fou : la mensualité ne couvre pas intérêts + frais → amortissement
+        // négatif (le capital augmenterait indéfiniment). On arrête proprement.
+        if (capitalRembourse <= 0) {
+          stopped = { m: m, interets: interets };
+          break;
+        }
+
+        var paiement = p.mensualite;
+        var lastPayment = false;
+        if (capitalRembourse > capitalRestant) {
+          // Dernière échéance : on ne rembourse que ce qui reste.
+          capitalRembourse = round2(capitalRestant);
+          paiement = round2(interets + p.autresFrais + capitalRembourse);
+          lastPayment = true;
+        }
+
+        var nouveau = round2(capitalRestant - capitalRembourse);
+        if (Math.abs(nouveau) < 0.005) nouveau = 0;
+
+        rows.push({
+          m: m, paiement: paiement, interets: interets, frais: p.autresFrais,
+          capitalRembourse: capitalRembourse, capitalRestant: nouveau, lastPayment: lastPayment
+        });
+
+        totalVerse += paiement;
+        totalInterets += interets;
+        totalFrais += p.autresFrais;
+        capitalRestant = nouveau;
+
+        if (capitalRestant === 0 && extinctionMois === null) extinctionMois = m;
+      }
+
+      return {
+        rows: rows,
+        totals: { verse: round2(totalVerse), interets: round2(totalInterets), frais: round2(totalFrais) },
+        extinctionMois: extinctionMois,
+        stopped: stopped,
+        resteCapital: capitalRestant > 0 ? round2(capitalRestant) : 0
+      };
+    }
+
+    // --- DOM ---
+    var form = document.getElementById('form');
+    var results = document.getElementById('results');
+    var alertsEl = document.getElementById('alerts');
+    var summaryEl = document.getElementById('summary');
+    var tbody = document.getElementById('tbody');
+    var csvBtn = document.getElementById('csvBtn');
+    var printBtn = document.getElementById('printBtn');
+    var resetBtn = document.getElementById('resetBtn');
+
+    var lastResult = null;
+
+    function readParams() {
+      return {
+        capitalInitial: parseFloat(document.getElementById('capital').value),
+        tauxAnnuel: parseFloat(document.getElementById('taux').value) / 100,
+        mensualite: parseFloat(document.getElementById('mensualite').value),
+        autresFrais: parseFloat(document.getElementById('frais').value),
+        nbMois: parseInt(document.getElementById('nbMois').value, 10)
+      };
+    }
+
+    function validate(p) {
+      if (!isFinite(p.capitalInitial) || p.capitalInitial <= 0) return 'Le capital de départ doit être un montant positif.';
+      if (!isFinite(p.tauxAnnuel) || p.tauxAnnuel < 0) return 'Le taux annuel doit être positif ou nul.';
+      if (!isFinite(p.mensualite) || p.mensualite <= 0) return 'La mensualité doit être un montant positif.';
+      if (!isFinite(p.autresFrais) || p.autresFrais < 0) return 'Les autres frais doivent être positifs ou nuls.';
+      if (!isFinite(p.nbMois) || p.nbMois < 1) return 'La durée doit être d\'au moins 1 mois.';
+      return null;
+    }
+
+    function alertBox(type, html) {
+      return '<div class="alert ' + type + '">' + html + '</div>';
+    }
+
+    function stat(k, v) {
+      return '<div class="stat"><div class="k">' + k + '</div><div class="v">' + v + '</div></div>';
+    }
+
+    function render(res, p) {
+      // Alertes
+      var html = '';
+      if (res.stopped) {
+        html += alertBox('err',
+          '⛔ Au mois ' + res.stopped.m + ', les intérêts (' + formatFrenchNumber(res.stopped.interets) +
+          ' €) plus les frais (' + formatFrenchNumber(p.autresFrais) + ' €) dépassent la mensualité (' +
+          formatFrenchNumber(p.mensualite) + ' €). Le prêt ne s\'amortit pas : augmentez la mensualité.');
+      } else if (res.resteCapital > 0) {
+        html += alertBox('warn',
+          '⚠️ Capital non éteint après ' + p.nbMois + ' mois : il reste <strong>' +
+          formatFrenchNumber(res.resteCapital) + ' €</strong>. Augmentez la mensualité ou la durée.');
+      } else if (res.extinctionMois) {
+        html += alertBox('ok',
+          '✅ Prêt soldé au mois <strong>' + res.extinctionMois + '</strong> (' +
+          (res.extinctionMois / 12).toFixed(1).replace('.', ',') + ' ans).');
+      }
+      alertsEl.innerHTML = html;
+
+      // Synthèse
+      var coutCredit = round2(res.totals.interets + res.totals.frais);
+      summaryEl.innerHTML =
+        stat('Échéances payées', res.extinctionMois || res.rows.filter(function (x) { return !x.zero; }).length) +
+        stat('Total versé', formatFrenchNumber(res.totals.verse) + ' €') +
+        stat('Total intérêts', formatFrenchNumber(res.totals.interets) + ' €') +
+        stat('Total frais', formatFrenchNumber(res.totals.frais) + ' €') +
+        stat('Coût du crédit', formatFrenchNumber(coutCredit) + ' €');
+
+      // Tableau
+      var rowsHtml = res.rows.map(function (row) {
+        var cls = row.zero ? ' class="zero"' : (row.lastPayment ? ' class="last-payment"' : '');
+        return '<tr' + cls + '>' +
+          '<td>' + row.m + '</td>' +
+          '<td>' + formatFrenchNumber(row.paiement) + '</td>' +
+          '<td>' + formatFrenchNumber(row.interets) + '</td>' +
+          '<td>' + formatFrenchNumber(row.frais) + '</td>' +
+          '<td>' + formatFrenchNumber(row.capitalRembourse) + '</td>' +
+          '<td>' + formatFrenchNumber(row.capitalRestant) + '</td>' +
+          '</tr>';
+      }).join('');
+      tbody.innerHTML = rowsHtml;
+
+      results.classList.remove('hidden');
+      csvBtn.disabled = false;
+      printBtn.disabled = false;
+      results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var p = readParams();
+      var err = validate(p);
+      if (err) {
+        results.classList.remove('hidden');
+        alertsEl.innerHTML = alertBox('err', '⛔ ' + err);
+        summaryEl.innerHTML = '';
+        tbody.innerHTML = '';
+        csvBtn.disabled = true;
+        printBtn.disabled = true;
+        lastResult = null;
+        return;
+      }
+      lastResult = { res: computeSchedule(p), p: p };
+      render(lastResult.res, lastResult.p);
+    });
+
+    resetBtn.addEventListener('click', function () {
+      form.reset();
+      results.classList.add('hidden');
+      lastResult = null;
+    });
+
+    csvBtn.addEventListener('click', function () {
+      if (!lastResult) return;
+      var header = ['Échéance', 'Montant du versement', 'Intérêts payés par versement',
+        'Autres frais', 'Capital remboursé par versement', 'Capital restant dû après chaque versement'];
+      var lines = [header.join(';')];
+      lastResult.res.rows.forEach(function (row) {
+        lines.push([row.m, formatFrenchNumber(row.paiement), formatFrenchNumber(row.interets),
+          formatFrenchNumber(row.frais), formatFrenchNumber(row.capitalRembourse),
+          formatFrenchNumber(row.capitalRestant)].join(';'));
+      });
+      // BOM pour ouverture correcte des accents dans Excel.
+      var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'echeancier.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    printBtn.addEventListener('click', function () { window.print(); });
+  </script>
+</body>
+</html>

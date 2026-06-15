@@ -8,27 +8,26 @@
 # Bank Interest Calcul
 
 ## Aperçu
-Projet générique pour produire un échéancier d’amortissement mensuel à partir d’un point de départ (deux premières lignes) et générer automatiquement les mois suivants jusqu’à extinction du capital. Conçu pour être facilement adapté à votre prêt (montant, taux, mensualité, frais, durée) et exportable en Google Sheets, Excel (.xlsx) ou CSV.
+Application web autonome pour produire un échéancier d’amortissement mensuel. On règle les paramètres du prêt (capital, taux, mensualité, frais, durée) **dans l’interface**, on clique sur _Calculer_, et le tableau mois par mois s’affiche instantanément. Tout est calculé localement dans le navigateur — aucune donnée n’est envoyée sur un serveur — et l’échéancier est exportable en CSV ou imprimable en PDF.
 
 ## Objectifs
-- Fournir un tableau mois par mois avec la répartition : paiement total, intérêts, autres frais, capital remboursé et capital restant.
-- Permettre une génération automatique en recopiant seulement les 2 premières lignes d’un tableau source.
-- Offrir des sorties prêtes à l’emploi (CSV / .xlsx / Google Sheet) et un script automatisé pour créer la feuille et suivre l’exécution.
-- Laisser les paramètres aisément modifiables pour l’adapter à tout type de prêt.
+- Fournir un tableau mois par mois avec la répartition : versement, intérêts, autres frais, capital remboursé et capital restant.
+- Régler tous les paramètres avant l’exécution via une interface graphique simple.
+- Afficher une synthèse (total versé, total intérêts, coût du crédit, mois d’extinction) et alerter si le prêt ne s’amortit pas.
+- Offrir un export prêt à l’emploi (CSV ouvrable dans Excel / Google Sheets) et une impression PDF.
 
 ## Technologie
-- JavaScript
+- HTML / CSS / JavaScript (page statique, sans dépendance ni build)
 
-## Déploiement
-Voici les étapes rapides pour obtenir le .xlsx téléchargeable :
+## Utilisation
+Aucune installation : le projet est un simple fichier HTML.
 
-- Ouvrez https://script.google.com → Nouveau projet.
-- Collez le code ci‑dessus, enregistrez.
-- Exécutez createEcheancierWithLineLogs → acceptez les autorisations (accès à Drive/Sheets).
-- À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée. La feuille est créée **privée** ; partagez-la manuellement si besoin (vos données financières ne sont pas exposées publiquement).
-- Dans Google Sheets : Fichier → Télécharger → Microsoft Excel (.xlsx). Le fichier .xlsx téléchargé contiendra les 300 lignes formatées.
+- Ouvrez [`index.html`](./index.html) dans votre navigateur (double-clic), ou publiez-le via GitHub Pages.
+- Renseignez les paramètres : **Capital de départ**, **Taux annuel**, **Mensualité**, **Autres frais mensuels** et **Durée maximale**.
+- Cliquez sur **Calculer l’échéancier** → le tableau et la synthèse s’affichent.
+- Exportez avec **Exporter en CSV** (séparateur `;`, ouvrable dans Excel) ou **Imprimer / PDF**.
 
-> Astuce : les montants sont écrits comme de **vrais nombres** (format français appliqué), donc directement triables et calculables. Les paramètres (taux, mensualité, frais, durée) sont modifiables en appelant `createEcheancier({ tauxAnnuel: 0.034, mensualite: 1000, autresFrais: 15, nbMois: 300 })`.
+> Les valeurs par défaut correspondent à un prêt d’exemple (3,4 % — 1 000 €/mois). Modifiez-les librement : l’interface prévient si la mensualité est trop faible pour amortir le prêt ou si le capital n’est pas éteint au terme de la durée choisie.
 
 ## Démo
 <img src="./assets/images/github/demo.png" alt="demo" />
