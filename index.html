@@ -238,9 +238,14 @@
   <script>
     'use strict';
 
+    var MOIS_PAR_AN = 12;
+    var MAX_MOIS = 2000;        // borne supérieure de la durée générée
+    var SEUIL_ARRONDI = 0.005;  // en deçà, le capital restant est ramené à 0
+
     var round2 = function (x) { return Math.round(x * 100) / 100; };
 
     var nfFR = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    var nfFR1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     function formatFrenchNumber(num) {
       // « + 0 » normalise un éventuel -0 en 0 pour ne pas afficher « -0,00 ».
       return nfFR.format(round2(num) + 0);
@@ -251,7 +256,7 @@
      * @returns {{rows:Array, totals:Object, extinctionMois:?number, stopped:?Object, resteCapital:number}}
      */
     function computeSchedule(p) {
-      var r = p.tauxAnnuel / 12;
+      var r = p.tauxAnnuel / MOIS_PAR_AN;
       var capitalRestant = round2(p.capitalInitial);
       var rows = [];
       var totalVerse = 0, totalInterets = 0, totalFrais = 0;
@@ -285,7 +290,7 @@
         }
 
         var nouveau = round2(capitalRestant - capitalRembourse);
-        if (Math.abs(nouveau) < 0.005) nouveau = 0;
+        if (Math.abs(nouveau) < SEUIL_ARRONDI) nouveau = 0;
 
         rows.push({
           m: m, paiement: paiement, interets: interets, frais: p.autresFrais,
@@ -319,7 +324,26 @@
     var printBtn = document.getElementById('printBtn');
     var resetBtn = document.getElementById('resetBtn');
 
+    // Références d'inputs mises en cache (évite un getElementById par champ à chaque calcul).
+    var inputs = {
+      capital: document.getElementById('capital'),
+      taux: document.getElementById('taux'),
+      mensualite: document.getElementById('mensualite'),
+      frais: document.getElementById('frais'),
+      nbMois: document.getElementById('nbMois')
+    };
+
     var lastResult = null;
+
+    // Vide les sorties et désactive les exports (état « pas de résultat »).
+    function clearResults() {
+      alertsEl.replaceChildren();
+      summaryEl.replaceChildren();
+      tbody.replaceChildren();
+      csvBtn.disabled = true;
+      printBtn.disabled = true;
+      lastResult = null;
+    }
 
     // Parse strict : rejette les saisies partielles (« 100abc » → NaN) et
     // accepte la virgule française comme séparateur décimal.
@@ -332,11 +356,11 @@
 
     function readParams() {
       return {
-        capitalInitial: parseNumber(document.getElementById('capital').value),
-        tauxAnnuel: parseNumber(document.getElementById('taux').value) / 100,
-        mensualite: parseNumber(document.getElementById('mensualite').value),
-        autresFrais: parseNumber(document.getElementById('frais').value),
-        nbMois: parseNumber(document.getElementById('nbMois').value)
+        capitalInitial: parseNumber(inputs.capital.value),
+        tauxAnnuel: parseNumber(inputs.taux.value) / 100,
+        mensualite: parseNumber(inputs.mensualite.value),
+        autresFrais: parseNumber(inputs.frais.value),
+        nbMois: parseNumber(inputs.nbMois.value)
       };
     }
 
@@ -347,7 +371,7 @@
       if (!isFinite(p.autresFrais) || p.autresFrais < 0) return 'Les autres frais doivent être positifs ou nuls.';
       if (!isFinite(p.nbMois) || p.nbMois < 1) return 'La durée doit être d\'au moins 1 mois.';
       if (!Number.isInteger(p.nbMois)) return 'La durée doit être un nombre entier de mois.';
-      if (p.nbMois > 2000) return 'La durée ne peut pas dépasser 2000 mois.';
+      if (p.nbMois > MAX_MOIS) return 'La durée ne peut pas dépasser ' + MAX_MOIS + ' mois.';
       return null;
     }
 
@@ -403,7 +427,7 @@
         alertsEl.replaceChildren(makeAlert('ok', [
           '✅ Prêt soldé au mois ',
           { b: String(res.extinctionMois) },
-          ' (' + (res.extinctionMois / 12).toFixed(1).replace('.', ',') + ' ans).'
+          ' (' + nfFR1.format(res.extinctionMois / MOIS_PAR_AN) + ' ans).'
         ]));
       } else {
         alertsEl.replaceChildren();
@@ -449,13 +473,9 @@
       var p = readParams();
       var err = validate(p);
       if (err) {
+        clearResults();
         results.classList.remove('hidden');
         alertsEl.replaceChildren(makeAlert('err', ['⛔ ' + err]));
-        summaryEl.replaceChildren();
-        tbody.replaceChildren();
-        csvBtn.disabled = true;
-        printBtn.disabled = true;
-        lastResult = null;
         return;
       }
       lastResult = { res: computeSchedule(p), p: p };
@@ -464,8 +484,8 @@
 
     resetBtn.addEventListener('click', function () {
       form.reset();
+      clearResults();
       results.classList.add('hidden');
-      lastResult = null;
     });
 
     csvBtn.addEventListener('click', function () {
