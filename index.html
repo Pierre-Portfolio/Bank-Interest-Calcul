@@ -6,8 +6,6 @@
   <title>Bank Interest Calcul — Échéancier d'amortissement</title>
   <style>
     :root {
-      --bg: #0f1623;
-      --panel: #16203212;
       --card: #ffffff;
       --card-2: #f5f7fb;
       --text: #1b2435;
@@ -210,7 +208,7 @@
 
     <section id="results" class="card hidden">
       <h2>Résultats</h2>
-      <div id="alerts"></div>
+      <div id="alerts" role="status" aria-live="polite"></div>
       <div class="summary" id="summary"></div>
       <h2 style="margin-top:22px">Détail mois par mois</h2>
       <div class="tablewrap">
@@ -241,13 +239,10 @@
 
     var round2 = function (x) { return Math.round(x * 100) / 100; };
 
+    var nfFR = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     function formatFrenchNumber(num) {
-      var neg = num < 0;
-      if (neg) num = -num;
-      var parts = round2(num).toFixed(2).split('.');
-      parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // espace insécable
-      var out = parts[0] + ',' + parts[1];
-      return neg ? '-' + out : out;
+      // « + 0 » normalise un éventuel -0 en 0 pour ne pas afficher « -0,00 ».
+      return nfFR.format(round2(num) + 0);
     }
 
     /**
