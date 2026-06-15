@@ -23,6 +23,7 @@ function computeSchedule(p) {
   var capitalRestant = round2(p.capitalInitial);
   var rows = [];
   var totalVerse = 0, totalInterets = 0, totalFrais = 0;
+  var echeancesPayees = 0;
   var extinctionMois = null;
   var stopped = null;
 
@@ -65,6 +66,7 @@ function computeSchedule(p) {
     totalVerse += paiement;
     totalInterets += interets;
     totalFrais += p.autresFrais;
+    echeancesPayees++;
     capitalRestant = nouveau;
 
     if (capitalRestant === 0 && extinctionMois === null) extinctionMois = m;
@@ -73,6 +75,7 @@ function computeSchedule(p) {
   return {
     rows: rows,
     totals: { verse: round2(totalVerse), interets: round2(totalInterets), frais: round2(totalFrais) },
+    echeancesPayees: echeancesPayees,
     extinctionMois: extinctionMois,
     stopped: stopped,
     resteCapital: capitalRestant > 0 ? round2(capitalRestant) : 0
@@ -201,9 +204,8 @@ function render(res, p) {
 
   // Synthèse
   var coutCredit = round2(res.totals.interets + res.totals.frais);
-  var echeancesPayees = res.rows.filter(function (x) { return !x.zero; }).length;
   summaryEl.replaceChildren(
-    makeStat('Échéances payées', echeancesPayees),
+    makeStat('Échéances payées', res.echeancesPayees),
     makeStat('Total versé', formatFrenchNumber(res.totals.verse) + ' €'),
     makeStat('Total intérêts', formatFrenchNumber(res.totals.interets) + ' €'),
     makeStat('Total frais', formatFrenchNumber(res.totals.frais) + ' €'),
