@@ -87,7 +87,7 @@
       outline: none;
       transition: border-color .15s, box-shadow .15s;
     }
-    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent)33; }
+    .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent); }
     .field .unit {
       position: absolute; right: 12px;
       color: var(--muted); font-size: .85rem; pointer-events: none;
@@ -108,9 +108,9 @@
     .btn-ghost:hover:not(:disabled) { background: var(--card-2); }
 
     .alert { border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: .92rem; }
-    .alert.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid var(--warn)55; }
-    .alert.err  { background: var(--err-bg);  color: var(--err);  border: 1px solid var(--err)55; }
-    .alert.ok   { background: #e9f8ef; color: var(--ok); border: 1px solid var(--ok)55; }
+    .alert.warn { background: var(--warn-bg); color: var(--warn); border: 1px solid color-mix(in srgb, var(--warn) 33%, transparent); }
+    .alert.err  { background: var(--err-bg);  color: var(--err);  border: 1px solid color-mix(in srgb, var(--err) 33%, transparent); }
+    .alert.ok   { background: #e9f8ef; color: var(--ok); border: 1px solid color-mix(in srgb, var(--ok) 33%, transparent); }
     @media (prefers-color-scheme: dark) { .alert.ok { background: #102a1d; } }
 
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; }
@@ -138,6 +138,13 @@
     .hidden { display: none; }
     footer { text-align: center; color: var(--muted); font-size: .82rem; margin-top: 30px; }
     footer a { color: var(--accent); }
+
+    @media print {
+      .actions, footer { display: none; }
+      .tablewrap { max-height: none; overflow: visible; border: none; }
+      thead th { position: static; }
+      .card { box-shadow: none; break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -334,6 +341,7 @@
       if (!isFinite(p.mensualite) || p.mensualite <= 0) return 'La mensualité doit être un montant positif.';
       if (!isFinite(p.autresFrais) || p.autresFrais < 0) return 'Les autres frais doivent être positifs ou nuls.';
       if (!isFinite(p.nbMois) || p.nbMois < 1) return 'La durée doit être d\'au moins 1 mois.';
+      if (p.nbMois > 2000) return 'La durée ne peut pas dépasser 2000 mois.';
       return null;
     }
 
@@ -421,11 +429,14 @@
       if (!lastResult) return;
       var header = ['Échéance', 'Montant du versement', 'Intérêts payés par versement',
         'Autres frais', 'Capital remboursé par versement', 'Capital restant dû après chaque versement'];
+      // Valeur numérique brute (décimale française, sans séparateur de milliers)
+      // pour qu'Excel/LibreOffice interprètent bien les cellules comme des nombres.
+      var csvNum = function (x) { return round2(x).toFixed(2).replace('.', ','); };
       var lines = [header.join(';')];
       lastResult.res.rows.forEach(function (row) {
-        lines.push([row.m, formatFrenchNumber(row.paiement), formatFrenchNumber(row.interets),
-          formatFrenchNumber(row.frais), formatFrenchNumber(row.capitalRembourse),
-          formatFrenchNumber(row.capitalRestant)].join(';'));
+        lines.push([row.m, csvNum(row.paiement), csvNum(row.interets),
+          csvNum(row.frais), csvNum(row.capitalRembourse),
+          csvNum(row.capitalRestant)].join(';'));
       });
       // BOM pour ouverture correcte des accents dans Excel.
       var blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
