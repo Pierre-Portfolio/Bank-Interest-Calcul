@@ -320,13 +320,22 @@
 
     var lastResult = null;
 
+    // Parse strict : rejette les saisies partielles (« 100abc » → NaN) et
+    // accepte la virgule française comme séparateur décimal.
+    function parseNumber(value) {
+      if (typeof value !== 'string') return NaN;
+      var s = value.trim().replace(',', '.');
+      if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(s)) return NaN;
+      return parseFloat(s);
+    }
+
     function readParams() {
       return {
-        capitalInitial: parseFloat(document.getElementById('capital').value),
-        tauxAnnuel: parseFloat(document.getElementById('taux').value) / 100,
-        mensualite: parseFloat(document.getElementById('mensualite').value),
-        autresFrais: parseFloat(document.getElementById('frais').value),
-        nbMois: parseInt(document.getElementById('nbMois').value, 10)
+        capitalInitial: parseNumber(document.getElementById('capital').value),
+        tauxAnnuel: parseNumber(document.getElementById('taux').value) / 100,
+        mensualite: parseNumber(document.getElementById('mensualite').value),
+        autresFrais: parseNumber(document.getElementById('frais').value),
+        nbMois: parseNumber(document.getElementById('nbMois').value)
       };
     }
 
@@ -336,6 +345,7 @@
       if (!isFinite(p.mensualite) || p.mensualite <= 0) return 'La mensualité doit être un montant positif.';
       if (!isFinite(p.autresFrais) || p.autresFrais < 0) return 'Les autres frais doivent être positifs ou nuls.';
       if (!isFinite(p.nbMois) || p.nbMois < 1) return 'La durée doit être d\'au moins 1 mois.';
+      if (!Number.isInteger(p.nbMois)) return 'La durée doit être un nombre entier de mois.';
       if (p.nbMois > 2000) return 'La durée ne peut pas dépasser 2000 mois.';
       return null;
     }
@@ -355,7 +365,8 @@
         html += alertBox('err',
           '⛔ Au mois ' + res.stopped.m + ', les intérêts (' + formatFrenchNumber(res.stopped.interets) +
           ' €) plus les frais (' + formatFrenchNumber(p.autresFrais) + ' €) dépassent la mensualité (' +
-          formatFrenchNumber(p.mensualite) + ' €). Le prêt ne s\'amortit pas : augmentez la mensualité.');
+          formatFrenchNumber(p.mensualite) + ' €). Le capital restant dû (<strong>' +
+          formatFrenchNumber(res.resteCapital) + ' €</strong>) ne diminuera jamais : augmentez la mensualité.');
       } else if (res.resteCapital > 0) {
         html += alertBox('warn',
           '⚠️ Capital non éteint après ' + p.nbMois + ' mois : il reste <strong>' +
@@ -369,8 +380,9 @@
 
       // Synthèse
       var coutCredit = round2(res.totals.interets + res.totals.frais);
+      var echeancesPayees = res.rows.filter(function (x) { return !x.zero; }).length;
       summaryEl.innerHTML =
-        stat('Échéances payées', res.extinctionMois || res.rows.filter(function (x) { return !x.zero; }).length) +
+        stat('Échéances payées', echeancesPayees) +
         stat('Total versé', formatFrenchNumber(res.totals.verse) + ' €') +
         stat('Total intérêts', formatFrenchNumber(res.totals.interets) + ' €') +
         stat('Total frais', formatFrenchNumber(res.totals.frais) + ' €') +
