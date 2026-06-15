@@ -160,7 +160,7 @@
           <div class="field">
             <label for="capital">Capital de départ</label>
             <div class="inputwrap">
-              <input type="number" id="capital" step="0.01" min="0" value="203567.64" />
+              <input type="text" inputmode="decimal" id="capital" value="203567.64" />
               <span class="unit">€</span>
             </div>
             <div class="hint">Capital restant dû au début de l'échéancier.</div>
@@ -168,7 +168,7 @@
           <div class="field">
             <label for="taux">Taux annuel</label>
             <div class="inputwrap">
-              <input type="number" id="taux" step="0.01" min="0" value="3.4" />
+              <input type="text" inputmode="decimal" id="taux" value="3.4" />
               <span class="unit">%</span>
             </div>
             <div class="hint">Taux d'intérêt nominal annuel.</div>
@@ -176,7 +176,7 @@
           <div class="field">
             <label for="mensualite">Mensualité</label>
             <div class="inputwrap">
-              <input type="number" id="mensualite" step="0.01" min="0" value="1000" />
+              <input type="text" inputmode="decimal" id="mensualite" value="1000" />
               <span class="unit">€</span>
             </div>
             <div class="hint">Montant fixe versé chaque mois.</div>
@@ -184,7 +184,7 @@
           <div class="field">
             <label for="frais">Autres frais mensuels</label>
             <div class="inputwrap">
-              <input type="number" id="frais" step="0.01" min="0" value="15" />
+              <input type="text" inputmode="decimal" id="frais" value="15" />
               <span class="unit">€</span>
             </div>
             <div class="hint">Assurance, frais de dossier récurrents…</div>
@@ -192,7 +192,7 @@
           <div class="field">
             <label for="nbMois">Durée maximale</label>
             <div class="inputwrap">
-              <input type="number" id="nbMois" step="1" min="1" max="2000" value="300" />
+              <input type="text" inputmode="numeric" id="nbMois" value="300" />
               <span class="unit">mois</span>
             </div>
             <div class="hint">Nombre d'échéances à générer.</div>
@@ -242,7 +242,8 @@
     var MAX_MOIS = 2000;        // borne supérieure de la durée générée
     var SEUIL_ARRONDI = 0.005;  // en deçà, le capital restant est ramené à 0
 
-    var round2 = function (x) { return Math.round(x * 100) / 100; };
+    // + Number.EPSILON corrige les arrondis flottants (ex. 1.005 → 1.01 au lieu de 1.00).
+    var round2 = function (x) { return Math.round((x + Number.EPSILON) * 100) / 100; };
 
     var nfFR = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     var nfFR1 = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -264,11 +265,8 @@
       var stopped = null;
 
       for (var m = 1; m <= p.nbMois; m++) {
-        // Capital déjà éteint : on remplit avec des zéros jusqu'à la fin.
-        if (capitalRestant <= 0) {
-          rows.push({ m: m, paiement: 0, interets: 0, frais: 0, capitalRembourse: 0, capitalRestant: 0, zero: true });
-          continue;
-        }
+        // Capital éteint : inutile de générer des échéances vides, on s'arrête.
+        if (capitalRestant <= 0) break;
 
         var interets = round2(capitalRestant * r);
         var capitalRembourse = round2(p.mensualite - interets - p.autresFrais);
@@ -276,6 +274,11 @@
         // Garde-fou : la mensualité ne couvre pas intérêts + frais → amortissement
         // négatif (le capital augmenterait indéfiniment). On arrête proprement.
         if (capitalRembourse <= 0) {
+          // Ligne informative (grisée, hors totaux) montrant le mois de blocage.
+          rows.push({
+            m: m, paiement: 0, interets: interets, frais: p.autresFrais,
+            capitalRembourse: 0, capitalRestant: capitalRestant, zero: true
+          });
           stopped = { m: m, interets: interets };
           break;
         }
@@ -345,11 +348,12 @@
       lastResult = null;
     }
 
-    // Parse strict : rejette les saisies partielles (« 100abc » → NaN) et
-    // accepte la virgule française comme séparateur décimal.
+    // Parse strict : rejette les saisies partielles (« 100abc » → NaN), tolère les
+    // séparateurs de milliers (espaces classiques, fines et insécables) et accepte
+    // la virgule française comme séparateur décimal.
     function parseNumber(value) {
       if (typeof value !== 'string') return NaN;
-      var s = value.trim().replace(',', '.');
+      var s = value.trim().replace(/\s/g, '').replace(',', '.');
       if (!/^[+-]?(\d+(\.\d*)?|\.\d+)$/.test(s)) return NaN;
       return parseFloat(s);
     }
