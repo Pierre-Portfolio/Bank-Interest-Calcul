@@ -28,6 +28,8 @@ Voici les étapes rapides pour obtenir le .xlsx téléchargeable :
 - À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée. La feuille est créée **privée** ; partagez-la manuellement si besoin (vos données financières ne sont pas exposées publiquement).
 - Dans Google Sheets : Fichier → Télécharger → Microsoft Excel (.xlsx). Le fichier .xlsx téléchargé contiendra les 300 lignes formatées.
 
+> Astuce : les montants sont écrits comme de **vrais nombres** (format français appliqué), donc directement triables et calculables. Les paramètres (taux, mensualité, frais, durée) sont modifiables en appelant `createEcheancier({ tauxAnnuel: 0.034, mensualite: 1000, autresFrais: 15, nbMois: 300 })`.
+
 ## Démo
 <img src="./assets/images/github/demo.png" alt="demo" />
 
