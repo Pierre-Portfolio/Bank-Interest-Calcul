@@ -31,7 +31,8 @@ function createEcheancierWithLineLogs() {
   // Fonctions utilitaires
   function parseFrenchNumber(s) {
     if (typeof s === 'number') return s;
-    return Number(String(s).replace(/\s/g, '').replace(',', '.'));
+    // Gère les séparateurs de milliers : espace normale, insécable ( ) et fine ( )
+    return Number(String(s).replace(/[\s  ]/g, '').replace(',', '.'));
   }
 
   function formatFrenchNumber(num) {
@@ -62,6 +63,16 @@ function createEcheancierWithLineLogs() {
   for (var m = 3; m <= nbMois; m++) {
     var interets = Math.round((capitalRestant * r) * 100) / 100;
     var capitalRemboursePropose = Math.round((mensualite - interets - autresFrais) * 100) / 100;
+
+    // Garde-fou : si la mensualité ne couvre pas intérêts + frais, le capital
+    // augmenterait indéfiniment (amortissement négatif). On arrête proprement.
+    if (capitalRemboursePropose <= 0) {
+      var msgAmort = 'Mensualité (' + mensualite + ') insuffisante au mois ' + m +
+        ' : intérêts (' + interets + ') + frais (' + autresFrais + ') >= mensualité. Calcul interrompu.';
+      Logger.log(msgAmort);
+      console.log(msgAmort);
+      break;
+    }
 
     var capitalRembourse;
     var paiementCetteLigne = mensualite;
@@ -113,6 +124,15 @@ function createEcheancierWithLineLogs() {
     }
   }
 
+  // Avertissement : si le capital n'est pas éteint au terme des nbMois échéances,
+  // le tableau est volontairement tronqué (la mensualité n'amortit pas le prêt assez vite).
+  if (capitalRestant > 0) {
+    var msgReste = 'Attention : capital non éteint après ' + nbMois + ' mois (reste ' +
+      formatFrenchNumber(capitalRestant) + '). Augmentez la mensualité ou la durée.';
+    Logger.log(msgReste);
+    console.log(msgReste);
+  }
+
   // Écrire toutes les lignes dans la feuille
   var ss = SpreadsheetApp.create('echeancier');
   var sheet = ss.getActiveSheet();
@@ -130,5 +150,14 @@ function createEcheancierWithLineLogs() {
 
   Logger.log('Feuille créée : %s', ss.getUrl());
   console.log('Feuille créée : ' + ss.getUrl());
-  SpreadsheetApp.getUi().alert('Feuille créée : ' + ss.getUrl() + '\nLa feuille est partagée en lecture (si autorisation Drive accordée).');
+
+  // getUi() n'est disponible que lorsqu'un contexte d'interface existe
+  // (menu/éditeur). Sous déclencheur temporel ou exécution via API, il lève
+  // une exception : on l'isole pour ne pas faire échouer tout le traitement.
+  try {
+    SpreadsheetApp.getUi().alert('Feuille créée : ' + ss.getUrl());
+  } catch (e) {
+    Logger.log('UI non disponible (exécution sans interface) : ' + e);
+    console.log('UI non disponible (exécution sans interface) : ' + e);
+  }
 }
