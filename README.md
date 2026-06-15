@@ -25,7 +25,7 @@ Voici les étapes rapides pour obtenir le .xlsx téléchargeable :
 - Ouvrez https://script.google.com → Nouveau projet.
 - Collez le code ci‑dessus, enregistrez.
 - Exécutez createEcheancierWithLineLogs → acceptez les autorisations (accès à Drive/Sheets).
-- À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée.
+- À la fin, récupérez l’URL dans la boîte de dialogue / journal d’exécution → ouvrez la feuille créée. La feuille est créée **privée** ; partagez-la manuellement si besoin (vos données financières ne sont pas exposées publiquement).
 - Dans Google Sheets : Fichier → Télécharger → Microsoft Excel (.xlsx). Le fichier .xlsx téléchargé contiendra les 300 lignes formatées.
 
 ## Démo

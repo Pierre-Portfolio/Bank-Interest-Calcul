@@ -139,17 +139,13 @@ function createEcheancierWithLineLogs() {
   sheet.setName('Echeancier');
   sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
 
-  // Partage (Anyone with link - Viewer) si possible
-  try {
-    var file = DriveApp.getFileById(ss.getId());
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (e) {
-    Logger.log('Impossible de changer le partage automatiquement : ' + e);
-    console.log('Impossible de changer le partage automatiquement : ' + e);
-  }
+  // SÉCURITÉ : la feuille contient des données financières personnelles
+  // (capital, taux, échéancier). Elle reste PRIVÉE — accessible uniquement au
+  // propriétaire. Ne jamais activer un partage public (ANYONE_WITH_LINK)
+  // automatiquement : partagez manuellement et de façon ciblée si nécessaire.
 
-  Logger.log('Feuille créée : %s', ss.getUrl());
-  console.log('Feuille créée : ' + ss.getUrl());
+  Logger.log('Feuille créée (privée) : %s', ss.getUrl());
+  console.log('Feuille créée (privée) : ' + ss.getUrl());
 
   // getUi() n'est disponible que lorsqu'un contexte d'interface existe
   // (menu/éditeur). Sous déclencheur temporel ou exécution via API, il lève
